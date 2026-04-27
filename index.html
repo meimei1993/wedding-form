@@ -13,8 +13,7 @@
     body {
       margin: 0;
       min-height: 100vh;
-      background:
-        linear-gradient(135deg, #e8fbf7 0%, #d0f4ea 60%, #c2f0e6 100%);
+      background: linear-gradient(135deg, #e8fbf7 0%, #d0f4ea 60%, #c2f0e6 100%);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -30,7 +29,6 @@
       position: fixed;
       font-size: 72px;
       opacity: 0.12;
-      filter: blur(0.2px);
       pointer-events: none;
     }
 
@@ -96,7 +94,7 @@
       height: 92px;
       margin: 0 auto 16px;
       border-radius: 50%;
-      background: rgba(255, 255, 255, 0.28);
+      background: rgba(255, 255, 255, 0.4);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -174,8 +172,7 @@
     input[type="text"],
     input[type="tel"],
     input[type="number"],
-    textarea,
-    select {
+    textarea {
       width: 100%;
       border: 1px solid #b8e6dc;
       border-radius: 15px;
@@ -188,8 +185,7 @@
     }
 
     input:focus,
-    textarea:focus,
-    select:focus {
+    textarea:focus {
       border-color: #ffadc4;
       box-shadow: 0 0 0 4px rgba(255, 173, 196, 0.18);
     }
@@ -276,6 +272,11 @@
       background: #66c2b0;
     }
 
+    button:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+    }
+
     .result {
       display: none;
       margin-top: 20px;
@@ -358,11 +359,11 @@
 
       <div id="attendingFields">
         <div class="field">
-          <label class="title">是否攜伴？<span class="required">*</span></label>
+          <label class="title">是否攜伴／家人出席？<span class="required">*</span></label>
           <div class="options">
             <label class="option-card">
               <input type="radio" name="bringPartner" value="是" />
-              是，會攜伴出席
+              是，會攜伴或家人出席
             </label>
             <label class="option-card">
               <input type="radio" name="bringPartner" value="否" />
@@ -372,7 +373,7 @@
         </div>
 
         <div class="field">
-          <label class="title" for="guestCount">出席人數<span class="required">*</span></label>
+          <label class="title" for="guestCount">出席總人數<span class="required">*</span></label>
           <input id="guestCount" name="guestCount" type="number" min="1" max="10" placeholder="請填寫總出席人數" />
           <p class="hint">請填寫包含您本人、攜伴或家人在內的總出席人數。</p>
         </div>
@@ -408,8 +409,22 @@
         </div>
 
         <div class="field">
-          <label class="title" for="mealNote">餐點備註</label>
-          <textarea id="mealNote" name="mealNote" placeholder="例如：1 位素食、2 位不吃牛、兒童餐需求、其他忌口等"></textarea>
+          <label class="title">是否需要搭乘遊覽車？<span class="required">*</span></label>
+          <div class="options">
+            <label class="option-card">
+              <input type="radio" name="bus" value="需要" />
+              需要
+            </label>
+            <label class="option-card">
+              <input type="radio" name="bus" value="不需要" />
+              不需要
+            </label>
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="title" for="mealNote">餐點／交通備註</label>
+          <textarea id="mealNote" name="mealNote" placeholder="例如：1 位素食、2 位不吃牛、兒童餐需求、遊覽車人數或其他備註等"></textarea>
         </div>
       </div>
 
@@ -438,7 +453,7 @@
     }
 
     function setAttendingRequired(isAttending) {
-      ["bringPartner", "vegetarian", "noBeef"].forEach((name) => {
+      ["bringPartner", "vegetarian", "noBeef", "bus"].forEach((name) => {
         form.querySelectorAll(`input[name="${name}"]`).forEach((input) => {
           input.required = isAttending;
         });
@@ -454,20 +469,15 @@
       setAttendingRequired(isAttending);
     }
 
-    function updatePartnerLogic() {
-      guestCount.min = 1;
-      guestCount.max = 10;
-    }
-
     function updateSummary() {
       updateVisibility();
-      updatePartnerLogic();
 
       const name = document.getElementById("guestName").value.trim();
       const attendance = getRadioValue("attendance");
       const bringPartner = getRadioValue("bringPartner");
       const vegetarian = getRadioValue("vegetarian");
       const noBeef = getRadioValue("noBeef");
+      const bus = getRadioValue("bus");
       const count = guestCount.value;
 
       if (!name && !attendance) {
@@ -481,8 +491,8 @@
       }
 
       liveSummary.innerHTML = `
-        回覆摘要：${name || "賓客"}${attendance ? `｜${attendance}` : ""}${bringPartner ? `｜攜伴：${bringPartner}` : ""}<br />
-        出席人數：${count || "尚未填寫"} 位｜吃素：${vegetarian || "尚未填寫"}｜不吃牛肉：${noBeef || "尚未填寫"}
+        回覆摘要：${name || "賓客"}${attendance ? `｜${attendance}` : ""}${bringPartner ? `｜攜伴／家人：${bringPartner}` : ""}<br />
+        出席人數：${count || "尚未填寫"} 位｜吃素：${vegetarian || "尚未填寫"}｜不吃牛肉：${noBeef || "尚未填寫"}｜遊覽車：${bus || "尚未填寫"}
       `;
     }
 
@@ -492,6 +502,29 @@
     form.addEventListener("submit", async function (event) {
       event.preventDefault();
       updateSummary();
+
+      const attendance = getRadioValue("attendance");
+      if (attendance === "會參加") {
+        const requiredGroups = [
+          { name: "bringPartner", label: "是否攜伴／家人出席" },
+          { name: "vegetarian", label: "是否有人吃素" },
+          { name: "noBeef", label: "是否有人不吃牛肉" },
+          { name: "bus", label: "是否需要搭乘遊覽車" }
+        ];
+
+        for (const group of requiredGroups) {
+          if (!getRadioValue(group.name)) {
+            alert(`請填寫：${group.label}`);
+            return;
+          }
+        }
+
+        if (!guestCount.value || Number(guestCount.value) < 1) {
+          alert("請填寫：出席總人數");
+          guestCount.focus();
+          return;
+        }
+      }
 
       if (!GOOGLE_SCRIPT_URL || GOOGLE_SCRIPT_URL.includes("請把你的")) {
         resultBox.style.display = "block";
@@ -509,11 +542,12 @@
       const data = {
         姓名: document.getElementById("guestName").value.trim(),
         電話: document.getElementById("phone").value.trim(),
-        參加意願: getRadioValue("attendance"),
-        是否攜伴: getRadioValue("attendance") === "會參加" ? getRadioValue("bringPartner") : "不適用",
-        出席人數: getRadioValue("attendance") === "會參加" ? guestCount.value : "0",
-        是否吃素: getRadioValue("attendance") === "會參加" ? getRadioValue("vegetarian") : "不適用",
-        是否不吃牛肉: getRadioValue("attendance") === "會參加" ? getRadioValue("noBeef") : "不適用",
+        參加意願: attendance,
+        是否攜伴: attendance === "會參加" ? getRadioValue("bringPartner") : "不適用",
+        出席人數: attendance === "會參加" ? guestCount.value : "0",
+        是否吃素: attendance === "會參加" ? getRadioValue("vegetarian") : "不適用",
+        是否不吃牛肉: attendance === "會參加" ? getRadioValue("noBeef") : "不適用",
+        是否搭乘遊覽車: attendance === "會參加" ? getRadioValue("bus") : "不適用",
         餐點備註: document.getElementById("mealNote").value.trim(),
         送出時間: new Date().toLocaleString("zh-TW", { hour12: false })
       };
@@ -533,15 +567,15 @@
           <strong>已收到您的回覆，謝謝您！</strong><br />
           姓名：${data.姓名}<br />
           參加意願：${data.參加意願}<br />
-          是否攜伴：${data.是否攜伴}<br />
+          是否攜伴／家人：${data.是否攜伴}<br />
           出席人數：${data.出席人數}<br />
           是否吃素：${data.是否吃素}<br />
           是否不吃牛肉：${data.是否不吃牛肉}<br />
-          餐點備註：${data.餐點備註 || "無"}
+          是否搭乘遊覽車：${data.是否搭乘遊覽車}<br />
+          備註：${data.餐點備註 || "無"}
         `;
 
         form.reset();
-        guestCount.value = "";
         updateSummary();
       } catch (error) {
         resultBox.style.display = "block";

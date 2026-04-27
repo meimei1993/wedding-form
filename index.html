@@ -422,6 +422,20 @@
           </div>
         </div>
 
+        <div class="field hidden" id="busLocationField">
+          <label class="title">上車地點<span class="required">*</span></label>
+          <div class="options">
+            <label class="option-card">
+              <input type="radio" name="busLocation" value="屏東佳冬三山國王廟" />
+              屏東佳冬三山國王廟
+            </label>
+            <label class="option-card">
+              <input type="radio" name="busLocation" value="高雄苓雅運動中心" />
+              高雄苓雅運動中心
+            </label>
+          </div>
+        </div>
+
         <div class="field">
           <label class="title" for="mealNote">餐點／交通備註</label>
           <textarea id="mealNote" name="mealNote" placeholder="例如：1 位素食、2 位不吃牛、兒童餐需求、遊覽車人數或其他備註等"></textarea>
@@ -446,6 +460,7 @@
     const liveSummary = document.getElementById("liveSummary");
     const resultBox = document.getElementById("resultBox");
     const guestCount = document.getElementById("guestCount");
+    const busLocationField = document.getElementById("busLocationField");
 
     function getRadioValue(name) {
       const checked = form.querySelector(`input[name="${name}"]:checked`);
@@ -469,8 +484,21 @@
       setAttendingRequired(isAttending);
     }
 
+    function updateBusLocationVisibility() {
+      const attendance = getRadioValue("attendance");
+      const bus = getRadioValue("bus");
+      const shouldShow = attendance === "會參加" && bus === "需要";
+
+      busLocationField.classList.toggle("hidden", !shouldShow);
+      form.querySelectorAll('input[name="busLocation"]').forEach((input) => {
+        input.required = shouldShow;
+        if (!shouldShow) input.checked = false;
+      });
+    }
+
     function updateSummary() {
       updateVisibility();
+      updateBusLocationVisibility();
 
       const name = document.getElementById("guestName").value.trim();
       const attendance = getRadioValue("attendance");
@@ -478,6 +506,7 @@
       const vegetarian = getRadioValue("vegetarian");
       const noBeef = getRadioValue("noBeef");
       const bus = getRadioValue("bus");
+      const busLocation = getRadioValue("busLocation");
       const count = guestCount.value;
 
       if (!name && !attendance) {
@@ -492,7 +521,7 @@
 
       liveSummary.innerHTML = `
         回覆摘要：${name || "賓客"}${attendance ? `｜${attendance}` : ""}${bringPartner ? `｜攜伴／家人：${bringPartner}` : ""}<br />
-        出席人數：${count || "尚未填寫"} 位｜吃素：${vegetarian || "尚未填寫"}｜不吃牛肉：${noBeef || "尚未填寫"}｜遊覽車：${bus || "尚未填寫"}
+        出席人數：${count || "尚未填寫"} 位｜吃素：${vegetarian || "尚未填寫"}｜不吃牛肉：${noBeef || "尚未填寫"}｜遊覽車：${bus || "尚未填寫"}${bus === "需要" ? `｜上車地點：${busLocation || "尚未填寫"}` : ""}
       `;
     }
 
@@ -524,6 +553,11 @@
           guestCount.focus();
           return;
         }
+
+        if (getRadioValue("bus") === "需要" && !getRadioValue("busLocation")) {
+          alert("請填寫：上車地點");
+          return;
+        }
       }
 
       if (!GOOGLE_SCRIPT_URL || GOOGLE_SCRIPT_URL.includes("請把你的")) {
@@ -548,6 +582,7 @@
         是否吃素: attendance === "會參加" ? getRadioValue("vegetarian") : "不適用",
         是否不吃牛肉: attendance === "會參加" ? getRadioValue("noBeef") : "不適用",
         是否搭乘遊覽車: attendance === "會參加" ? getRadioValue("bus") : "不適用",
+        上車地點: attendance === "會參加" && getRadioValue("bus") === "需要" ? getRadioValue("busLocation") : "不適用",
         餐點備註: document.getElementById("mealNote").value.trim(),
         送出時間: new Date().toLocaleString("zh-TW", { hour12: false })
       };
@@ -572,6 +607,7 @@
           是否吃素：${data.是否吃素}<br />
           是否不吃牛肉：${data.是否不吃牛肉}<br />
           是否搭乘遊覽車：${data.是否搭乘遊覽車}<br />
+          上車地點：${data.上車地點}<br />
           備註：${data.餐點備註 || "無"}
         `;
 

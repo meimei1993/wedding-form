@@ -404,17 +404,47 @@
       e.preventDefault();
 
       const attend = radioValue("是否參加");
+      const name = form.elements["姓名"].value.trim();
+      const phone = form.elements["聯絡電話"].value.trim();
+      const companion = radioValue("是否攜伴");
+      const adults = form.elements["大人人數"].value || "0";
+      const children = form.elements["兒童椅小孩人數"].value || "0";
+      const vegetarian = radioValue("是否吃素");
+
+      // 必填防呆檢查：沒填完整就不能送出
+      if (!name) {
+        alert("請填寫姓名");
+        form.elements["姓名"].focus();
+        return;
+      }
+
+      if (!attend) {
+        alert("請選擇是否參加");
+        return;
+      }
+
+      if (attend !== "否，無法參加") {
+        if (!companion) {
+          alert("請選擇是否攜伴");
+          return;
+        }
+
+        if (!vegetarian) {
+          alert("請選擇是否吃素");
+          return;
+        }
+      }
 
       const data = new FormData(form);
 
       const payload = {
-        姓名: data.get("姓名") || "",
-        聯絡電話: data.get("聯絡電話") || "",
+        姓名: name,
+        聯絡電話: phone,
         是否參加: attend || "",
-        是否攜伴: attend === "否，無法參加" ? "" : (radioValue("是否攜伴") || ""),
-        大人人數: attend === "否，無法參加" ? "0" : (data.get("大人人數") || "0"),
-        兒童椅小孩人數: attend === "否，無法參加" ? "0" : (data.get("兒童椅小孩人數") || "0"),
-        是否吃素: attend === "否，無法參加" ? "" : (radioValue("是否吃素") || ""),
+        是否攜伴: attend === "否，無法參加" ? "" : companion,
+        大人人數: attend === "否，無法參加" ? "0" : adults,
+        兒童椅小孩人數: attend === "否，無法參加" ? "0" : children,
+        是否吃素: attend === "否，無法參加" ? "" : vegetarian,
         是否需要搭遊覽車: "不需要",
         上車地點: "不需要",
         是否需要喜帖: "不需要",

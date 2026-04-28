@@ -352,9 +352,7 @@
       <div class="hero-text">
         <div class="tag">SAKURA WEDDING SURVEY</div>
         <h1>婚禮問卷調查</h1>
-        <p class="subtitle">感謝您撥空填寫，協助我們統計出席人數、餐點、交通與喜帖需求。<br>
-  期待與您一起見證這個美好的時刻。<br><br>
-  <strong style="color:#c85d79;">請於 2026/5/31 前完成填寫 ♡</strong></p>
+        <p class="subtitle">感謝您撥空填寫，協助我們統計出席人數、餐點、交通與喜帖需求。<br>期待與您一起見證這個美好的時刻。</p>
         <div class="rings">💍 ♡ 🌸</div>
       </div>
       <div class="photo-wrap">
@@ -505,52 +503,92 @@
 
       const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyOBhH9jxSNYdn3-4mL2M7eyNSvWqFoax3oJX4VQU1Q97wsjwOUSAjxWM0m5W3Nf5t-/exec";
 
+      const 姓名 = form.elements["姓名"].value.trim();
+      const 聯絡電話 = form.elements["聯絡電話"].value.trim();
       const attend = radioValue("是否參加");
+      const companion = radioValue("是否攜伴");
+      const adults = form.elements["大人人數"].value || "0";
+      const children = form.elements["兒童椅小孩人數"].value || "0";
+      const vegetarian = radioValue("是否吃素");
       const needBus = radioValue("是否需要搭遊覽車");
+      const busPlace = radioValue("上車地點");
       const needInvite = radioValue("是否需要喜帖");
-      const type = radioValue("喜帖形式");
+      const inviteTypeValue = radioValue("喜帖形式");
+      const paperAddressValue = form.elements["紙本喜帖地址"].value.trim();
+      const emailValue = form.elements["電子喜帖EMAIL"].value.trim();
 
-      if (SCRIPT_URL === "請把你的Google Apps Script網址貼在這裡") {
-        alert("請先把 Google Apps Script 網址貼到 HTML 裡的 SCRIPT_URL");
+      // 必填防呆檢查
+      if (!姓名) {
+        alert("請填寫姓名");
+        form.elements["姓名"].focus();
         return;
       }
 
-      if (attend !== "否，無法參加" && needBus === "是" && !radioValue("上車地點")) {
-        alert("請選擇上車地點");
+      if (!attend) {
+        alert("請選擇是否參加");
         return;
       }
 
-      if (needInvite === "是，需要" && !type) {
-        alert("請選擇喜帖形式");
+      if (attend !== "否，無法參加") {
+        if (!companion) {
+          alert("請選擇是否攜伴");
+          return;
+        }
+
+        if (!vegetarian) {
+          alert("請選擇是否吃素");
+          return;
+        }
+
+        if (!needBus) {
+          alert("請選擇是否需要搭遊覽車");
+          return;
+        }
+
+        if (needBus === "是" && !busPlace) {
+          alert("請選擇上車地點");
+          return;
+        }
+      }
+
+      if (!needInvite) {
+        alert("請選擇是否需要喜帖");
         return;
       }
 
-      if (needInvite === "是，需要" && type === "紙本喜帖" && !form.elements["紙本喜帖地址"].value.trim()) {
-        alert("請填寫紙本喜帖地址");
-        return;
-      }
+      if (needInvite === "是，需要") {
+        if (!inviteTypeValue) {
+          alert("請選擇紙本喜帖或電子喜帖");
+          return;
+        }
 
-      if (needInvite === "是，需要" && type === "電子喜帖" && !form.elements["電子喜帖EMAIL"].value.trim()) {
-        alert("請填寫電子喜帖 EMAIL");
-        return;
-      }
+        if (inviteTypeValue === "紙本喜帖" && !paperAddressValue) {
+          alert("請填寫紙本喜帖寄送地址");
+          form.elements["紙本喜帖地址"].focus();
+          return;
+        }
 
-      const data = new FormData(form);
+        if (inviteTypeValue === "電子喜帖" && !emailValue) {
+          alert("請填寫電子喜帖 EMAIL");
+          form.elements["電子喜帖EMAIL"].focus();
+          return;
+        }
+      }
 
       const payload = {
-        姓名: data.get("姓名") || "",
-        聯絡電話: data.get("聯絡電話") || "",
-        是否參加: attend || "",
-        是否攜伴: attend === "否，無法參加" ? "" : (radioValue("是否攜伴") || ""),
-        大人人數: attend === "否，無法參加" ? "0" : (data.get("大人人數") || "0"),
-        兒童椅小孩人數: attend === "否，無法參加" ? "0" : (data.get("兒童椅小孩人數") || "0"),
-        是否吃素: attend === "否，無法參加" ? "" : (radioValue("是否吃素") || ""),
-        是否需要搭遊覽車: attend === "否，無法參加" ? "" : (needBus || ""),
-        上車地點: attend !== "否，無法參加" && needBus === "是" ? radioValue("上車地點") : "不需要",
-        是否需要喜帖: needInvite || "",
-        喜帖形式: needInvite === "是，需要" ? type : "不需要",
-        紙本喜帖地址: type === "紙本喜帖" ? (data.get("紙本喜帖地址") || "") : "",
-        電子喜帖EMAIL: type === "電子喜帖" ? (data.get("電子喜帖EMAIL") || "") : ""
+        姓名: 姓名,
+        聯絡電話: 聯絡電話,
+        是否參加: attend,
+        是否攜伴: attend === "否，無法參加" ? "" : companion,
+        大人人數: attend === "否，無法參加" ? "0" : adults,
+        兒童椅小孩人數: attend === "否，無法參加" ? "0" : children,
+        是否吃素: attend === "否，無法參加" ? "" : vegetarian,
+        是否需要搭遊覽車: attend === "否，無法參加" ? "不需要" : needBus,
+        上車地點: attend !== "否，無法參加" && needBus === "是" ? busPlace : "不需要",
+        是否需要喜帖: needInvite,
+        喜帖形式: needInvite === "是，需要" ? inviteTypeValue : "不需要",
+        紙本喜帖地址: needInvite === "是，需要" && inviteTypeValue === "紙本喜帖" ? paperAddressValue : "",
+        電子喜帖EMAIL: needInvite === "是，需要" && inviteTypeValue === "電子喜帖" ? emailValue : ""
       };
 
       let text = "【婚禮問卷填寫結果】\n";

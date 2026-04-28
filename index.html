@@ -273,6 +273,30 @@
       background: linear-gradient(135deg, #d99a6c, #efb7a8);
     }
 
+
+    .submit-status {
+      display: none;
+      margin-top: 16px;
+      padding: 14px 16px;
+      border-radius: 16px;
+      font-weight: 700;
+      text-align: center;
+    }
+
+    .submit-status.success {
+      display: block;
+      color: #8b3d55;
+      background: #fff1f5;
+      border: 1px solid #efb7c6;
+    }
+
+    .submit-status.error {
+      display: block;
+      color: #9f2f45;
+      background: #fff4f2;
+      border: 1px solid #f0b5aa;
+    }
+
     .footer {
       text-align: center;
       color: #b67b8b;
@@ -436,6 +460,7 @@
 
       <div id="result" class="result"></div>
       <button id="copyBtn" class="copy-btn" type="button">複製填寫結果</button>
+      <div id="submitStatus" class="submit-status"></div>
       <div class="footer">🌸 Thank you for celebrating with us 🌸</div>
     </section>
   </main>
@@ -449,6 +474,7 @@
     const emailFields = document.getElementById("emailFields");
     const result = document.getElementById("result");
     const copyBtn = document.getElementById("copyBtn");
+    const submitStatus = document.getElementById("submitStatus");
 
     function radioValue(name) {
       const item = form.querySelector(`input[name="${name}"]:checked`);
@@ -472,13 +498,20 @@
 
     form.addEventListener("change", toggleFields);
 
-    form.addEventListener("submit", function(e) {
+    form.addEventListener("submit", async function(e) {
       e.preventDefault();
+
+      const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyOBhH9jxSNYdn3-4mL2M7eyNSvWqFoax3oJX4VQU1Q97wsjwOUSAjxWM0m5W3Nf5t-/exec";
 
       const attend = radioValue("是否參加");
       const needBus = radioValue("是否需要搭遊覽車");
       const needInvite = radioValue("是否需要喜帖");
       const type = radioValue("喜帖形式");
+
+      if (SCRIPT_URL === "請把你的Google Apps Script網址貼在這裡") {
+        alert("請先把 Google Apps Script 網址貼到 HTML 裡的 SCRIPT_URL");
+        return;
+      }
 
       if (attend !== "否，無法參加" && needBus === "是" && !radioValue("上車地點")) {
         alert("請選擇上車地點");
@@ -502,29 +535,60 @@
 
       const data = new FormData(form);
 
+      const payload = {
+        姓名: data.get("姓名") || "",
+        聯絡電話: data.get("聯絡電話") || "",
+        是否參加: attend || "",
+        是否攜伴: attend === "否，無法參加" ? "" : (radioValue("是否攜伴") || ""),
+        大人人數: attend === "否，無法參加" ? "0" : (data.get("大人人數") || "0"),
+        兒童椅小孩人數: attend === "否，無法參加" ? "0" : (data.get("兒童椅小孩人數") || "0"),
+        是否吃素: attend === "否，無法參加" ? "" : (radioValue("是否吃素") || ""),
+        是否需要搭遊覽車: attend === "否，無法參加" ? "" : (needBus || ""),
+        上車地點: attend !== "否，無法參加" && needBus === "是" ? radioValue("上車地點") : "不需要",
+        是否需要喜帖: needInvite || "",
+        喜帖形式: needInvite === "是，需要" ? type : "不需要",
+        紙本喜帖地址: type === "紙本喜帖" ? (data.get("紙本喜帖地址") || "") : "",
+        電子喜帖EMAIL: type === "電子喜帖" ? (data.get("電子喜帖EMAIL") || "") : ""
+      };
+
       let text = "【婚禮問卷填寫結果】\n";
-      text += `姓名：${data.get("姓名") || ""}\n`;
-      text += `聯絡電話：${data.get("聯絡電話") || ""}\n`;
-      text += `是否參加：${attend}\n`;
+      Object.keys(payload).forEach(key => {
+        text += `${key}：${payload[key]}\n`;
+      });
 
-      if (attend !== "否，無法參加") {
-        text += `是否攜伴：${radioValue("是否攜伴") || ""}\n`;
-        text += `大人人數：${data.get("大人人數") || "0"}\n`;
-        text += `需要兒童椅的小孩人數：${data.get("兒童椅小孩人數") || "0"}\n`;
-        text += `是否吃素：${radioValue("是否吃素") || ""}\n`;
-        text += `是否需要搭遊覽車：${needBus || ""}\n`;
-        text += `上車地點：${needBus === "是" ? radioValue("上車地點") : "不需要"}\n`;
+      const submitButton = form.querySelector(".submit");
+      submitButton.disabled = true;
+      submitButton.textContent = "送出中，請稍候…";
+      submitStatus.className = "submit-status";
+      submitStatus.textContent = "";
+
+      try {
+        await fetch(SCRIPT_URL, {
+          method: "POST",
+          mode: "no-cors",
+          headers: {
+            "Content-Type": "text/plain;charset=utf-8"
+          },
+          body: JSON.stringify(payload)
+        });
+
+        result.textContent = text;
+        result.style.display = "block";
+        copyBtn.style.display = "block";
+
+        submitStatus.textContent = "填寫成功，謝謝您的回覆 ♡";
+        submitStatus.className = "submit-status success";
+
+        form.reset();
+        toggleFields();
+        result.scrollIntoView({ behavior: "smooth", block: "center" });
+      } catch (error) {
+        submitStatus.textContent = "送出失敗，請稍後再試，或聯繫新人。";
+        submitStatus.className = "submit-status error";
+      } finally {
+        submitButton.disabled = false;
+        submitButton.textContent = "♡ 送出問卷";
       }
-
-      text += `是否需要喜帖：${needInvite || ""}\n`;
-      text += `喜帖形式：${needInvite === "是，需要" ? type : "不需要"}\n`;
-      text += `紙本喜帖地址：${type === "紙本喜帖" ? data.get("紙本喜帖地址") : ""}\n`;
-      text += `電子喜帖 EMAIL：${type === "電子喜帖" ? data.get("電子喜帖EMAIL") : ""}\n`;
-
-      result.textContent = text;
-      result.style.display = "block";
-      copyBtn.style.display = "block";
-      result.scrollIntoView({ behavior: "smooth", block: "center" });
     });
 
     copyBtn.addEventListener("click", async function() {
